@@ -1,0 +1,328 @@
+openapi: 3.1.0
+info:
+  title: Prompt Royale API Specification
+  description: Formal OpenAPI 3.1 specification for Prompt Royale (College Academic AI Platform - Vaigai College deployment).
+  version: 0.1.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development / Demo Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: adhithiyan@vaigai.edu
+        password:
+          type: string
+          example: Vaigai@123
+
+    UserOut:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [student, department_user, college_admin]
+        college_id:
+          type: integer
+        department_id:
+          type: integer
+          nullable: true
+        enrolled_subjects:
+          type: array
+          items:
+            type: integer
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        user:
+          $ref: '#/components/schemas/UserOut'
+
+    SubjectOut:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+          example: CS101
+        description:
+          type: string
+        department_id:
+          type: integer
+        document_count:
+          type: integer
+
+    Citation:
+      type: object
+      properties:
+        document_title:
+          type: string
+        section_title:
+          type: string
+        snippet:
+          type: string
+
+    ChatQueryRequest:
+      type: object
+      required:
+        - subject_id
+        - question
+      properties:
+        subject_id:
+          type: integer
+          example: 1
+        question:
+          type: string
+          example: How does BFS traversal work in a binary tree?
+
+    ChatQueryResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+        is_insufficient_evidence:
+          type: boolean
+
+    QuizStartRequest:
+      type: object
+      required:
+        - subject_id
+      properties:
+        subject_id:
+          type: integer
+
+    QuizQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        source_citation:
+          type: string
+
+    QuizStartResponse:
+      type: object
+      properties:
+        battle_id:
+          type: string
+        subject_code:
+          type: string
+        subject_name:
+          type: string
+        time_limit_seconds:
+          type: integer
+          example: 60
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizQuestion'
+
+    QuizAnswerSubmission:
+      type: object
+      properties:
+        question_id:
+          type: integer
+        selected_option:
+          type: integer
+
+    QuizSubmitRequest:
+      type: object
+      required:
+        - battle_id
+        - answers
+      properties:
+        battle_id:
+          type: string
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizAnswerSubmission'
+        time_taken_seconds:
+          type: integer
+
+    QuizQuestionReview:
+      type: object
+      properties:
+        question_id:
+          type: integer
+        question:
+          type: string
+        selected_option:
+          type: integer
+        correct_option:
+          type: integer
+        explanation:
+          type: string
+        source_citation:
+          type: string
+        is_correct:
+          type: boolean
+
+    QuizSubmitResponse:
+      type: object
+      properties:
+        score:
+          type: integer
+        total:
+          type: integer
+          example: 10
+        accuracy_percentage:
+          type: number
+        time_taken_seconds:
+          type: integer
+        review:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizQuestionReview'
+
+paths:
+  /api/health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Service health status
+
+  /api/auth/login:
+    post:
+      summary: Authenticate user and issue JWT bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/auth/me:
+    get:
+      summary: Retrieve current authenticated session
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile and active subject memberships
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+
+  /api/subjects:
+    get:
+      summary: List accessible subjects governed by SBAC
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of authorized subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubjectOut'
+
+  /api/chat/query:
+    post:
+      summary: Ask academic question grounded in subject documents
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQueryRequest'
+      responses:
+        '200':
+          description: Grounded answer with citations or insufficient evidence notice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatQueryResponse'
+        '403':
+          description: Subject access denied (SBAC check failed)
+
+  /api/quiz/start:
+    post:
+      summary: Start 10-question Solo Quiz Battle on enrolled subject
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizStartRequest'
+      responses:
+        '200':
+          description: Generated 10 MCQs with timer and citations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizStartResponse'
+        '429':
+          description: Daily battle limit reached (max 3/day)
+
+  /api/quiz/submit:
+    post:
+      summary: Submit battle answers and receive instant scorecard
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizSubmitRequest'
+      responses:
+        '200':
+          description: Scorecard with accuracy and question review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizSubmitResponse'
