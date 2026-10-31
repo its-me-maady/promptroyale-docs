@@ -1,0 +1,16 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Git Worktrees
+.worktrees/
+worktrees/
+
+# Temporary & Output
+tmp/
+*.tmp
