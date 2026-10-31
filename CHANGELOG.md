@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [#1] Defined complete OpenAPI 3.1 specification under `specs/openapi.yaml` covering Authentication, Subject-Based Access Control, Grounded RAG Chat with citations, and Solo Quiz Battle endpoints (closes #1).
 - Imported baseline Product Requirements Document (`PRD v1.3-FINAL`).
 - Imported baseline System Requirements Specification (`SRS v1.0-FINAL`).
 - Initialized documentation governance and changelog tracking.
